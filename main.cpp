@@ -248,9 +248,8 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
 	Vector3 result;
 	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + 1.0f * matrix.m[3][3];
-	// wが0または非常に小さい場合のチェックを追加 (ゼロ除算を避ける)
 	if (std::abs(w) < 1e-6f) {
-		w = 1.0f; // ゼロ除算を避けるためにwを1に設定（エラーケース）
+		w = 1.0f;
 	}
 	result.x = (vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0]) / w;
 	result.y = (vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1]) / w;
@@ -262,17 +261,14 @@ Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
 /// グリッドをワイヤーフレームで描画
 /// </summary>
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
-	const float kGridHalfWidth = 2.0f; // グリッドの半分の幅
-	const uint32_t kSubdivision = 10;   // グリッドの分割数
-	const float kGridEvery = (kGridHalfWidth * 2.0f) / static_cast<float>(kSubdivision); // グリッド1マスのサイズ
-	uint32_t gridColor = 0xAAAAAAFF; // グリッドの色 (薄いグレー)
-	Matrix4x4 worldMatrix = MakeIdentity4x4(); // グリッドはワールド原点に配置
+	const float kGridHalfWidth = 2.0f;
+	const uint32_t kSubdivision = 10;
+	const float kGridEvery = (kGridHalfWidth * 2.0f) / static_cast<float>(kSubdivision);
+	uint32_t gridColor = 0xAAAAAAFF;
+	Matrix4x4 worldMatrix = MakeIdentity4x4();
 
-	// ビュープロジェクションビューポート合成行列
 	Matrix4x4 worldViewProjectionViewportMatrix = Multiply(worldMatrix, Multiply(viewProjectionMatrix, viewportMatrix));
 
-
-	// 奥から手前への線を引く
 	for (uint32_t xIndex = 0; xIndex <= kSubdivision; ++xIndex) {
 		float x = -kGridHalfWidth + (kGridEvery * xIndex);
 		Vector3 start = { x, 0.0f, -kGridHalfWidth };
@@ -283,7 +279,6 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 
 		Novice::DrawLine(static_cast<int>(screenStart.x), static_cast<int>(screenStart.y), static_cast<int>(screenEnd.x), static_cast<int>(screenEnd.y), gridColor);
 	}
-	// 左から右への線を引く
 	for (uint32_t zIndex = 0; zIndex <= kSubdivision; ++zIndex) {
 		float z = -kGridHalfWidth + (kGridEvery * zIndex);
 		Vector3 start = { -kGridHalfWidth, 0.0f, z };
@@ -299,32 +294,25 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 /// 球をワイヤーフレームで描画
 /// </summary>
 void DrawSphere(const Vector3& centerWorld, float radiusWorld, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-	const uint32_t kSubdivision = 12; // 球の分割数
-	float latEvery = static_cast<float>(M_PI) / kSubdivision; // 緯度方向の分割
-	float lonEvery = 2.0f * static_cast<float>(M_PI) / kSubdivision; // 経度方向の分割
+	const uint32_t kSubdivision = 12;
+	float latEvery = static_cast<float>(M_PI) / kSubdivision;
+	float lonEvery = 2.0f * static_cast<float>(M_PI) / kSubdivision;
 
-	// 球の中心を原点としたローカル座標系での点を生成し、
-	// ワールド変換、ビュープロジェクション変換、ビューポート変換を適用する
 	Matrix4x4 sphereWorldMatrix = MakeTranslateMatrix(centerWorld);
 	Matrix4x4 worldViewProjectionViewportMatrix = Multiply(sphereWorldMatrix, Multiply(viewProjectionMatrix, viewportMatrix));
 
-
-	// 緯度方向に分割して円を描画
 	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-		float lat = -static_cast<float>(M_PI) / 2.0f + latEvery * latIndex; // -PI/2 から PI/2
+		float lat = -static_cast<float>(M_PI) / 2.0f + latEvery * latIndex;
 		float latNext = lat + latEvery;
 
-		// 経度方向に分割して線分を描画
 		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
-			float lon = lonEvery * lonIndex; // 0 から 2PI
+			float lon = lonEvery * lonIndex;
 			float lonNext = lon + lonEvery;
 
-			// ローカル座標での点 (球の中心が原点)
 			Vector3 p0_local = { std::cos(lat) * std::cos(lon) * radiusWorld, std::sin(lat) * radiusWorld, std::cos(lat) * std::sin(lon) * radiusWorld };
 			Vector3 p1_local = { std::cos(lat) * std::cos(lonNext) * radiusWorld, std::sin(lat) * radiusWorld, std::cos(lat) * std::sin(lonNext) * radiusWorld };
 			Vector3 p2_local = { std::cos(latNext) * std::cos(lon) * radiusWorld, std::sin(latNext) * radiusWorld, std::cos(latNext) * std::sin(lon) * radiusWorld };
 
-			// スクリーン座標に変換
 			Vector3 screenP0 = Transform(p0_local, worldViewProjectionViewportMatrix);
 			Vector3 screenP1 = Transform(p1_local, worldViewProjectionViewportMatrix);
 			Vector3 screenP2 = Transform(p2_local, worldViewProjectionViewportMatrix);
@@ -355,21 +343,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ばねとボールの初期化
 	Spring spring;
-	spring.anchor = { 0.0f, 0.8f, 0.0f }; // アンカーは少し上に
+	spring.anchor = { 0.0f, 0.8f, 0.0f };
 	spring.naturalLength = 1.0f;
 	spring.stiffness = 100.0f;
 	spring.dampingCoefficient = 2.0f;
 
 	Ball ball;
-	ball.position = { 1.2f, 0.8f, 0.0f }; // 初期位置はアンカーの右側
+	ball.position = { 1.2f, 0.8f, 0.0f };
 	ball.velocity = { 0.0f, 0.0f, 0.0f };
 	ball.mass = 2.0f;
-	ball.radius = 0.05f; // 画像のボールは小さめ
+	ball.radius = 0.05f;
 	ball.color = 0x0000FFFF; // 青色
 
-	uint32_t anchorColor = 0xFF0000FF; // アンカーの色 (赤)
-	float anchorRadius = 0.02f;       // アンカーの描画半径
-	uint32_t springLineColor = 0xFFFFFFFF; // ばねの線の色 (白)
+	uint32_t anchorColor = 0xFF0000FF;
+	float anchorRadius = 0.02f;
+	uint32_t springLineColor = 0xFFFFFFFF;
 
 
 	while (Novice::ProcessMessage() == 0) {
@@ -385,37 +373,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
 		// ボールの物理演算
-		Vector3 displacement = Subtract(ball.position, spring.anchor); // ボールからアンカーへのベクトル
+		Vector3 displacement = Subtract(ball.position, spring.anchor);
 		float currentLength = Length(displacement);
-		Vector3 direction = Normalize(displacement); // アンカーからボールへの方向ベクトル
+		Vector3 direction = Normalize(displacement);
 
-		// ばねの力 (フックの法則 F = -k * (L - L0) * direction)
-		// L - L0 が負なら伸長、正なら圧縮。力は常に変位と逆方向。
-		// displacement は ball - anchor なので、(currentLength - naturalLength) が正なら伸びている。
-		// 力はアンカー方向を向くので、-direction を使う。
+		// ばねの力
 		Vector3 springForce = { 0.0f, 0.0f, 0.0f };
-		if (currentLength != 0) { // ゼロ除算を避ける
+		if (currentLength != 0) {
 			springForce = MultiplyScalar(direction, -spring.stiffness * (currentLength - spring.naturalLength));
 		}
 
-
-		// 減衰力 (F_damping = -c * v)
+		// 減衰力
 		Vector3 dampingForce = MultiplyScalar(ball.velocity, -spring.dampingCoefficient);
 
 		// 合力
 		Vector3 totalForce = Add(springForce, dampingForce);
-		// 重力 (オプション、今回はなし)
-		// Vector3 gravityForce = {0.0f, -9.8f * ball.mass, 0.0f};
-		// totalForce = Add(totalForce, gravityForce);
 
-
-		// 加速度 (a = F / m)
+		// 加速度
 		Vector3 acceleration = MultiplyScalar(totalForce, 1.0f / ball.mass);
 
-		// 速度の更新 (v = v0 + a * dt)
+		// 速度の更新
 		ball.velocity = Add(ball.velocity, MultiplyScalar(acceleration, deltaTime));
 
-		// 位置の更新 (p = p0 + v * dt)
+		// 位置の更新
 		ball.position = Add(ball.position, MultiplyScalar(ball.velocity, deltaTime));
 
 
